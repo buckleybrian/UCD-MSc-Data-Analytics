@@ -1,0 +1,314 @@
+---
+title: "STAT40620 Assignment 1"
+author: "Brian Buckley 14203480"
+output:
+  html_document: default
+  pdf_document:
+    fig_caption: yes
+    fig_crop: no
+    fig_height: 4
+    fig_width: 5.5
+---
+# Brian Buckley 14203480
+
+# STAT40730 Assignment 1
+
+## Task 1: manipulation ##
+
+### 1 Set working directory to the folder that contains the names data and read in a file
+
+```{r tidy=TRUE, echo=FALSE}
+setwd("C:/Users/buckleyb/Documents/Personal/Courses/UCD Data Analytics/STAT40730 Data Prog with R/Assessments/Assignment1/names")
+data1950<-read.csv("./yob1950.txt", header=FALSE, stringsAsFactors=F)
+```
+
+### 2 Answer some specific questions about this data set
+
+#### (a) How many children were born in 1950?
+
+```{r echo=FALSE}
+numBorn<-sum(data1950[,3])
+```
+
+* According to these data there were **`r numBorn`** children born in 1950
+
+#### (b) Which were the 10 most popular names for each sex?
+
+```{r echo=FALSE}
+popFemales1950<-subset(data1950, data1950[[2]]=='F')[1:10,]
+popMales1950<-subset(data1950, data1950[[2]]=='M')[1:10,]
+```
+
+* The 10 most popular female names in 1950 were **`r popFemales1950[,1]`**
+* The 10 most popular male names in 1950 were **`r popMales1950[,1]`**
+
+#### (c) Are there any names in the data set that were only given once?
+
+```{r echo=FALSE}
+lessFive<-nrow(subset(data1950, data1950[[3]]<5))
+if (lessFive > 0) {
+    onceOnly<-nrow(subset(data1950, data1950[[3]] == 1))
+    if (onceOnly > 0) {
+        sprintf("There are &d names in the data only given once", onceOnly) 
+    } else {
+        sprintf("There are no names in the data only given once")
+    }
+} else {
+    sprintf("There are no names given less than 5 times")
+}
+```
+
+### 3 Which female and male name had the biggest rise/fall compared with 1950
+*   I interpret this question as the name that had the most/least difference from their position in 1950 to their position in 2010
+
+```{r tidy=TRUE, echo=FALSE}
+setwd("C:/Users/buckleyb/Documents/Personal/Courses/UCD Data Analytics/STAT40730 Data Prog with R/Assessments/Assignment1/names")
+data2010<-read.csv("./yob2010.txt", header=FALSE, stringsAsFactors=F)
+```
+
+
+```{r echo=FALSE}
+# Convenience function to do the 1950/2010 comparison
+comparePop = function (data1, data2) { # data1 is 1950, data2 is 2010
+    for (i in 1:nrow(data1)) {
+        for (j in 1:nrow(data2)) {
+            
+            # Find a matching name in 2010 and add the 2010 value in a new column
+            if (data2[j,1] == data1[i,1]) {
+                data1[i,4]<-data2[j,3]
+                
+                # calculate the popularity difference from 1950 to 2010
+                data1[i,5]<-data1[i,4]-data1[i,3]
+                
+                break
+            }
+        }
+    }
+    return(data1)
+}
+femCompare<-comparePop(popFemales1950, data2010)
+```
+
+#### Which female name had the biggest rise/fall
+```{r echo=FALSE}
+femOrdered<-femCompare[with(femCompare, order(-V5)),]
+```
+
+* The biggest female rise was **`r femOrdered[1]$V1[1]`**
+* The biggest female fall was **`r femOrdered[1]$V1[10]`**
+
+#### Which male name had the biggest rise/fall
+
+```{r echo=FALSE}
+maleData2010<-subset(data2010, data2010[[2]]=='M')
+malCompare<-comparePop(popMales1950, maleData2010)
+maleOrdered<-malCompare[with(malCompare, order(-V5)),]
+```
+
+* The biggest male rise was **`r maleOrdered[1]$V1[1]`**
+* The biggest male fall was **`r maleOrdered[1]$V1[10]`**
+
+```{r tidy=TRUE, echo=FALSE}
+# 4 Load all of the files for each year into a single data frame with 4 columns: year, name, sex and number of births
+setwd("C:/Users/buckleyb/Documents/Personal/Courses/UCD Data Analytics/STAT40730 Data Prog with R/Assessments/Assignment1/names")
+files<-list.files(".", full.names=TRUE, pattern = "\\.txt$")
+
+readData = function (fs) {
+    dataFrame<-data.frame(name=character(0), sex=character(0), number=integer(0), year=integer(0))
+    for (i in 1:length(fs)) {
+        if (exists('dataItem')) rm(dataItem)
+        dataItem<-read.csv(fs[i], header=FALSE)
+        
+        # Get the year from the filename
+        yearStr<-substr(fs[i], 6, 9)
+        dataItem$year<-as.integer(yearStr)
+        
+        # merge into a global data frame
+        colnames(dataItem)<-c("name", "sex", "number", "year")
+        dataFrame<-rbind(dataFrame, dataItem)
+    }
+    return(dataFrame)
+}
+dataAll<-readData(files)
+```
+
+
+```{r echo=FALSE, results="hide"}
+# show that we have successfully loaded all of the files into a single data frame
+str(dataAll)
+```
+
+## Task 2: analysis ##
+
+```{r echo=FALSE, results="hide"}
+# 1 Produce a table of the popularity of your name over each year
+brianData<-subset(dataAll, name == "Brian" & sex == "M", select=c(number, year))
+brianPop<-aggregate(number~year, data=brianData, sum)
+```
+
+```{r echo=FALSE, warning=FALSE, results="hide"}
+# Render the table of popularity om my name **Brian** over each year
+library(knitr)
+kable(brianPop)
+```
+
+### 1 What year was the maximum for your name?
+
+```{r echo=FALSE}
+brianOrdered<-brianPop[with(brianPop, order(-number, year)),]
+```
+
+* **`r brianOrdered$year[1]`** was the year my name, **Brian** was most popular
+
+```{r echo=FALSE}
+# 2 Create a table showing the total births by sex and year
+fems<-subset(dataAll, sex == "F")
+femSum<-aggregate(number ~ year, data=fems, sum)
+males<-subset(dataAll, sex == "M")
+maleSum<-aggregate(number ~ year, data=males, sum)
+bothSum<-merge(femSum, maleSum, by=c("year"))
+colnames(bothSum)<-c("year", "females", "males")
+```
+
+```{r echo=FALSE, results='hide'}
+# render the table
+library(knitr)
+kable(bothSum)
+```
+
+### 2 Do males or females tend to have higher birth rates?
+
+* Female Summary Statistics
+```{r echo=FALSE}
+summary(femSum)
+```
+
+* Male Summary Statistics
+```{r echo=FALSE}
+summary(maleSum)
+```
+* Male birth rates have both a higher mean and median than female birth rates so overall males tend to have higher birth rates
+* Specifically females have an approximately 98% mean and 96% median birth rate compared with males over the whole data set
+
+```{r tidy=TRUE, echo=FALSE}
+# 3 create a table of the frequency of different last letters in names for years 1910, 1060 and 2010 for males and females
+setwd("C:/Users/buckleyb/Documents/Personal/Courses/UCD Data Analytics/STAT40730 Data Prog with R/Assessments/Assignment1/names")
+fs<-c("./yob1910.txt", "./yob1960.txt", "./yob2010.txt")
+lastLett<-list(lett=letters, freq=rep(0,26) )
+result<-readData(fs)
+for (i in 1:length(result$name)) {
+    if(exists('name')) rm(name)
+    name<-as.vector(result$name[i])
+    result$lastLett[i]<-substr(name, nchar(name), nchar(name));
+}
+fem<-subset(result, sex =="F")
+femTable<-table(fem$lastLett)
+
+mal<-subset(result, sex =="M")
+malTable<-table(mal$lastLett)
+```
+
+```{r echo=FALSE, results="hide"}
+# Frequency table for female last letters
+library(knitr)
+kable(as.data.frame(femTable), col.names=c("Last letter", "Frequency"))
+```
+
+```{r echo=FALSE, results="hide"}
+# Frequency table for male last letters
+library(knitr)
+kable(as.data.frame(malTable), col.names=c("Last letter", "Frequency"))
+```
+
+### 3 Which last letter(s) stand out as having the biggest increase/decrease?
+
+```{r echo=FALSE}
+fmax<-names(which(femTable == max(femTable)))
+fmin<-names(which(femTable == min(femTable)))
+
+mmax<-names(which(malTable == max(malTable)))
+mmin<-names(which(malTable == min(malTable)))
+```
+
+* The letter **`r fmax`** has the biggest increase for **females**.
+* The letter **`r fmin`** has the biggest decrease for **females**.
+* The letter **`r mmax`** has the biggest increase for **males**.
+* The letter **`r mmin`** has the biggest decrease for **males**.
+
+### 4 Which are the most popular palindromic names?
+
+```{r warning=FALSE, tidy=TRUE, echo=FALSE, results="hide"}
+palindromes<-list()
+pcount = 1
+for (i in 1:length(dataAll$name)) {
+    if(exists("c"))rm("c")
+    
+    # convert whole name to upper case to make the palindromic test easier
+    c<-toupper(as.character(dataAll$name[i]))
+    
+    # test for palindromic and if true add to the list
+    if(identical(strsplit(c, "")[[1]], rev(strsplit(c, "")[[1]])) == TRUE) {
+        palindromes$name[pcount]<-as.character(dataAll$name[i])
+        palindromes$number[pcount]<-as.numeric(dataAll$number[i])
+        palindromes$year[pcount]<-as.numeric(dataAll$year[i])
+        pcount = pcount + 1
+    }
+}
+pframe<-as.data.frame(palindromes)
+pSum<-aggregate(number ~ name, data=pframe, sum)
+pOrdered<-pSum[with(pSum, order(-number)),]
+```
+
+```{r echo=FALSE}
+library(knitr)
+kable(head(pOrdered))
+```
+
+```{r echo=FALSE, results='hide'}
+# Calculate the proportion of palindromic names per year
+totSum<-aggregate(number ~ year, data=dataAll, sum)
+palSum<-aggregate(number ~ year, data=pframe, sum)
+pmerge<-cbind(totSum, palSum)
+colnames(pmerge)<-c("tyear", "tnumber", "pyear", "pnumber")
+plist<-as.list(pmerge)
+for (i in 1:length(plist$tyear)) {
+    plist$prop[i]<-plist$pnumber[i]/plist$tnumber[i]
+}
+
+library(knitr)
+kable(data.frame(plist$pyear, plist$prop), col.names=c("Year", "Proportion"))
+```
+
+### 4.1 Are such names on the increase?
+
+* The plot of the proportion of palindromic names over time (Figure 1) shows that such names are **not** on the increase
+
+```{r warning=FALSE, tidy=TRUE, echo=FALSE}
+# To answer this it is easier to look at a plot
+plot(plist$pyear, plist$prop, col="green", pch=19, cex=0.5, xlab="Year", ylab="Palindromic proportion")
+title("Proportion of palindromic names from 1880 to 2011")
+```
+
+
+## Task 3: creativity ##
+
+### 1 Plot female and male birth rates to get a finer level of granularity than summary data
+
+```{r warning=FALSE, tidy=TRUE, echo=FALSE}
+plot(femSum, col="pink", pch=19, cex=0.5)
+points(maleSum, col="blue", pch=15, cex=0.5)
+legend("topleft",legend=c("Females", "Males"),pch=c(19,15),col=c("pink", "blue"), bty="n")
+title("Birth rates of US females and males names from 1880 to 2011")
+```
+
+* From the plot in Figure 2 we see that prior to 1940 females tended to have higher birth rates but after 1940 males tended to have higher birth rates.
+* The dramatic rise in both birth rates from ~1940 to ~1960 corresponds to the 'baby bommer years' following World War II
+
+### 2 Plot my name's popularity
+
+```{r warning=FALSE, tidy=TRUE, echo=FALSE}
+plot(x=brianPop$year, y=brianPop$number, cex=0.5, col="green3", pch=19, xlab="Year", ylab="number of registrations for 'Brian'")
+title("Popularity of the name 'Brian' from 1900 to 2011")
+```
+
+* The plot in Figure 3 shows that my name was very unpopular until ~1940 when it grew significantly until the early 1970s when it declined markedly in popularity.  However, at the end of the data set (2011) it was still as popular as in around 1950. These data is therefore skewed to the left.
