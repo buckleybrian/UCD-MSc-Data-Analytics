@@ -31,11 +31,11 @@ x<-c(0,1,seq(5,110,by=5))
 
 par(mfrow=c(1,2))
 Yfa<-colMeans(Yf)
-matplot(x,t(Yf),col="gray", log="y",type="l",ylab="Mortality",main="Female",xlab="Age")
-lines(x, Yfa, pch=2, col="red")
+matplot(x,t(Yf[2:25]),col="gray", log="y",type="l",ylab="Mortality",main="Female",xlab="Age")
+lines(x, Yfa[2:25], pch=2, col="red")
 Yma<-colMeans(Ym)
-matplot(x,t(Ym),col="gray", log="y",type="l",ylab="Mortality",main="Male",xlab="Age")
-lines(x, Yma, pch=2, col="red")
+matplot(x,t(Ym[2:25]),col="gray", log="y",type="l",ylab="Mortality",main="Male",xlab="Age")
+lines(x, Yma[2:25], pch=2, col="red")
 ```
 **Figure 1: Age against the logarithm of Mortality for female and male life table data.  The mean of the data is shown by the red line.**
 
@@ -81,8 +81,8 @@ fit.m <- kmeans(Ym, centers = 5, nstart = 20)
 
 # plot the clusters on the data
 #par(mfrow=c(1,2))
-#matplot(x,t(Yf),col=fit.f$cluster, log="y",type="l",ylab="Mortality",main="Female",xlab="Age")
-#matplot(x,t(Ym),col=fit.m$cluster, log="y",type="l",ylab="Mortality",main="Male",xlab="Age")
+#matplot(x,t(Yf[2:25]),col=fit.f$cluster, log="y",type="l",ylab="Mortality",main="Female",xlab="Age")
+#matplot(x,t(Ym[2:25]),col=fit.m$cluster, log="y",type="l",ylab="Mortality",main="Male",xlab="Age")
 
 # plot the cluster centers
 par(mfrow=c(1,2))
